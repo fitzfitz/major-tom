@@ -27,9 +27,10 @@ services:
       timeout: 5s
       retries: 5
 
-  mission-api:
+  api:
     build:
-      context: ./mission-api
+      context: .
+      dockerfile: apps/api/Dockerfile
     environment:
       NODE_ENV: development
       PORT: 3000
@@ -43,15 +44,16 @@ services:
       redis:
         condition: service_healthy
 
-  mission-ui:
+  web:
     build:
-      context: ./mission-ui
+      context: .
+      dockerfile: apps/web/Dockerfile
     environment:
       VITE_API_BASE_URL: http://localhost:3000
     ports:
       - "5173:5173"
     depends_on:
-      - mission-api
+      - api
 
 volumes:
   postgres_data:
