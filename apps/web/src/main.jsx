@@ -1,3 +1,4 @@
+import { boardColumns, formatStatus } from '@major-tom/shared'
 import React, { useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
@@ -23,12 +24,7 @@ const taskFormDefaults = {
   acceptanceCriteria: '',
 }
 
-const boardColumns = ['IDEA', 'BACKLOG_CANDIDATE', 'READY', 'DESIGN_IN_PROGRESS', 'DESIGN_REVIEW', 'CODE_READY', 'CODE_IN_PROGRESS', 'TEST_IN_PROGRESS', 'QA_REVIEW', 'PR_READY', 'DONE', 'BLOCKED']
 const defaultAgentTypes = ['market-research', 'planner', 'design', 'code', 'test', 'qa', 'pr']
-
-function formatStatus(status) {
-  return String(status ?? '').toLowerCase().replaceAll('_', ' ')
-}
 
 function App() {
   const [projects, setProjects] = useState([])
@@ -214,9 +210,9 @@ function App() {
     <main className="shell">
       <section className="hero">
         <p className="eyebrow">Major Tom</p>
-        <h1>Agent run framework is online.</h1>
+        <h1>Monorepo architecture is online.</h1>
         <p className="lede">
-          Trigger safe deterministic agent runs, inspect outputs, and keep every run tied to a task record.
+          Shared mission-control rules now live in <code>@major-tom/shared</code>, with web and API apps in the workspace.
         </p>
       </section>
 
@@ -308,7 +304,7 @@ function App() {
               <h3>Transition history</h3>
               <ul className="history-list">
                 {selectedTask.transitions.map((transition) => (
-                  <li key={transition.id}>{formatStatus(transition.fromStatus)} → {formatStatus(transition.toStatus)}{transition.requiresApproval ? ' with approval' : ''}</li>
+                  <li key={transition.id}>{formatStatus(transition.fromStatus)} to {formatStatus(transition.toStatus)}{transition.requiresApproval ? ' with approval' : ''}</li>
                 ))}
               </ul>
             </div>

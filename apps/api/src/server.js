@@ -1,3 +1,12 @@
+import {
+  agentTypes,
+  allowedAgentStatuses,
+  allowedTransitions,
+  requiresApproval,
+  riskLevels,
+  taskStatuses,
+  transitionKey,
+} from '@major-tom/shared'
 import cors from '@fastify/cors'
 import Fastify from 'fastify'
 import { randomUUID } from 'node:crypto'
@@ -7,69 +16,6 @@ const app = Fastify({ logger: true })
 await app.register(cors, { origin: true })
 
 const now = () => new Date().toISOString()
-
-const taskStatuses = [
-  'IDEA',
-  'RESEARCH_REQUESTED',
-  'RESEARCH_DONE',
-  'BACKLOG_CANDIDATE',
-  'READY',
-  'DESIGN_IN_PROGRESS',
-  'DESIGN_REVIEW',
-  'CODE_READY',
-  'CODE_IN_PROGRESS',
-  'TEST_IN_PROGRESS',
-  'QA_REVIEW',
-  'PR_READY',
-  'DONE',
-  'BLOCKED',
-  'CANCELLED',
-]
-
-const agentTypes = [
-  'market-research',
-  'planner',
-  'design',
-  'code',
-  'test',
-  'qa',
-  'pr',
-]
-
-const allowedAgentStatuses = {
-  'market-research': ['IDEA', 'RESEARCH_REQUESTED'],
-  planner: ['RESEARCH_DONE', 'BACKLOG_CANDIDATE', 'READY'],
-  design: ['READY', 'DESIGN_IN_PROGRESS', 'DESIGN_REVIEW'],
-  code: ['CODE_READY', 'CODE_IN_PROGRESS'],
-  test: ['CODE_IN_PROGRESS', 'TEST_IN_PROGRESS'],
-  qa: ['TEST_IN_PROGRESS', 'QA_REVIEW'],
-  pr: ['PR_READY'],
-}
-
-const approvalRequiredTransitions = new Set([
-  'BACKLOG_CANDIDATE->READY',
-  'DESIGN_REVIEW->CODE_READY',
-  'QA_REVIEW->PR_READY',
-  'PR_READY->DONE',
-])
-
-const allowedTransitions = {
-  IDEA: ['RESEARCH_REQUESTED', 'BLOCKED', 'CANCELLED'],
-  RESEARCH_REQUESTED: ['RESEARCH_DONE', 'BLOCKED', 'CANCELLED'],
-  RESEARCH_DONE: ['BACKLOG_CANDIDATE', 'BLOCKED', 'CANCELLED'],
-  BACKLOG_CANDIDATE: ['READY', 'BLOCKED', 'CANCELLED'],
-  READY: ['DESIGN_IN_PROGRESS', 'BLOCKED', 'CANCELLED'],
-  DESIGN_IN_PROGRESS: ['DESIGN_REVIEW', 'BLOCKED', 'CANCELLED'],
-  DESIGN_REVIEW: ['CODE_READY', 'BLOCKED', 'CANCELLED'],
-  CODE_READY: ['CODE_IN_PROGRESS', 'BLOCKED', 'CANCELLED'],
-  CODE_IN_PROGRESS: ['TEST_IN_PROGRESS', 'BLOCKED', 'CANCELLED'],
-  TEST_IN_PROGRESS: ['QA_REVIEW', 'BLOCKED', 'CANCELLED'],
-  QA_REVIEW: ['PR_READY', 'BLOCKED', 'CANCELLED'],
-  PR_READY: ['DONE', 'BLOCKED', 'CANCELLED'],
-  DONE: [],
-  BLOCKED: ['IDEA', 'READY', 'CANCELLED'],
-  CANCELLED: [],
-}
 
 const projects = [
   {
@@ -111,14 +57,6 @@ function findTask(taskId) {
   return tasks.find((item) => item.id === taskId)
 }
 
-function transitionKey(fromStatus, toStatus) {
-  return `${fromStatus}->${toStatus}`
-}
-
-function requiresApproval(fromStatus, toStatus, riskLevel) {
-  return approvalRequiredTransitions.has(transitionKey(fromStatus, toStatus)) || riskLevel === 'high'
-}
-
 function recordAuditEvent(entityType, entityId, eventType, metadata = {}, actorType = 'user') {
   const event = {
     id: randomUUID(),
@@ -130,6 +68,7 @@ function recordAuditEvent(entityType, entityId, eventType, metadata = {}, actorT
     metadata,
     createdAt: now(),
   }
+
   auditEvents.unshift(event)
   return event
 }
@@ -207,10 +146,13 @@ function completeAgentRun(run) {
   run.recommendedNextState = output.recommendedNextState
   run.finishedAt = now()
 
-  recordAuditEvent('task', task.id, 'agent_run.completed', {
-    agentType: run.agentType,
-    agentRunId: run.id,
-  }, 'agent')
+  recordAuditEvent(
+    'task',
+    task.id,
+    'agent_run.completed',
+    { agentType: run.agentType, agentRunId: run.id },
+    'agent',
+  )
 
   return run
 }
@@ -244,7 +186,7 @@ app.get('/health', async () => ({ status: 'ok', service: 'mission-api' }))
 
 app.get('/api/status', async () => ({
   name: 'Major Tom Mission API',
-  phase: 'agent-run-framework',
+  phase: 'turborepo-monorepo',
   databaseConfigured: Boolean(process.env.DATABASE_URL),
   redisConfigured: Boolean(process.env.REDIS_URL),
 }))
@@ -308,7 +250,7 @@ app.post('/api/tasks', async (request, reply) => {
   if (!title) return reply.code(400).send({ message: 'Task title is required' })
 
   const status = taskStatuses.includes(body.status) ? body.status : 'IDEA'
-  const riskLevel = ['low', 'medium', 'high'].includes(body.riskLevel) ? body.riskLevel : 'low'
+  const riskLevel = riskLevels.includes(body.riskLevel) ? body.riskLevel : 'low'
 
   const task = {
     id: randomUUID(),

@@ -1,0 +1,18 @@
+{
+  "name": "@major-tom/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "build": "node -e \"console.log('api has no build step yet')\"",
+    "lint": "node -e \"console.log('api lint placeholder')\"",
+    "check": "node -e \"console.log('api check placeholder')\""
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@major-tom/shared": "workspace:*",
+    "fastify": "^5.2.1"
+  }
+}
